@@ -1,6 +1,7 @@
 import numpy as np
 
-from plane_ode import PlaneODE2D, n_traj
+from plane_ode import PlaneODE2D, n_traj, x_loc, y_loc, keepout_radius, personal_zone
+
 from openmdao.api import Problem, Group, pyOptSparseDriver, DirectSolver
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,43 +10,57 @@ from matplotlib import cm
 from dymos import Phase
 from itertools import combinations
 
-np.random.seed(12345)
+np.random.seed(432)
 
 p = Problem(model=Group())
 
 p.driver = pyOptSparseDriver()
 p.driver.options['optimizer'] = 'SNOPT'
 p.driver.options['dynamic_simul_derivs'] = True
-#p.driver.opt_settings['Major iterations limit'] = 10000
-#p.driver.opt_settings['Minor iterations limit'] = 10000
-#p.driver.opt_settings['Iterations limit'] = 100000
-p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-4
-p.driver.opt_settings['Major optimality tolerance'] = 1.0E-4
+p.driver.opt_settings['Major iterations limit'] = 10000
+p.driver.opt_settings['Minor iterations limit'] = 10000
+p.driver.opt_settings['Iterations limit'] = 100000
+p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-3
+p.driver.opt_settings['Major optimality tolerance'] = 1.0E-3
 #p.driver.opt_settings["Linesearch tolerance"] = 0.01
-#p.driver.opt_settings["Major step limit"] = 0.1
+p.driver.opt_settings["Major step limit"] = 1.1
 p.driver.opt_settings['iSumm'] = 6
-'gauss-lobatto'
 
-phase = Phase(transcription='radau-ps',
+
+
+
+phase = Phase(transcription='gauss-lobatto',
               ode_class=PlaneODE2D,
-              num_segments=20,
+              num_segments=25,
               transcription_order=3,
               compressed=True)
 
 p.model.add_subsystem('phase0', phase)
 p.model.options['assembled_jac_type'] = 'csc'
-#p.model.linear_solver = DirectSolver(assemble_jac=True)
+p.model.linear_solver = DirectSolver(assemble_jac=True)
 
-phase.set_time_options(initial_bounds=(0, 0), duration_bounds=(1, 1500))
+phase.set_time_options(initial_bounds=(0, 0), duration_bounds=(5500, 5500))
 
 
 locations = []
+thetas = []
+
+thetas = np.linspace(0, 2*np.pi, n_traj + 1)
+
 for i in range(n_traj):
     # trajectories random start/end locations in circle of radius 4000 around this point
     center_x = 0
     center_y = 0
-    theta = np.random.uniform(0, 2*np.pi)
-    theta2 = np.random.uniform(np.pi-np.pi/5, np.pi + np.pi/5)
+    # while True:
+    #     theta = np.random.uniform(0, 1.5*np.pi)
+    #     if len(thetas) == 0:
+    #         thetas.append(theta)
+    #         break
+    #     elif min([abs(theta - t) for t in thetas]) > 0.6:
+    #         thetas.append(theta)
+    #         break
+    theta = thetas[i]        
+    theta2 = np.random.uniform(np.pi-np.pi/6, np.pi + np.pi/6)
     r = 4000.
     start_x = center_x + r*np.cos(theta)
     start_y = center_y + r*np.sin(theta)
@@ -54,10 +69,10 @@ for i in range(n_traj):
     end_y = center_y + r*np.sin(theta + theta2)
 
     locations.append([start_x, end_x, start_y, end_y])
-    phase.set_state_options('x%d' % i, lower=-10000, upper=10000,
-                            scaler=0.001, defect_scaler=.0001)
-    phase.set_state_options('y%d' % i, lower=-10000, upper=10000,
-                            scaler=0.001, defect_scaler=.0001)
+    phase.set_state_options('x%d' % i,
+                            scaler=0.01, defect_scaler=0.1)
+    phase.set_state_options('y%d' % i,
+                            scaler=0.01, defect_scaler=0.1)
 
     phase.add_boundary_constraint('x%d' % i, loc='initial', equals=start_x)
     phase.add_boundary_constraint('y%d' % i, loc='initial', equals=start_y)
@@ -66,18 +81,23 @@ for i in range(n_traj):
     # phase.set_state_options('v%d' % i, fix_initial=False, fix_final=False,
     #                     scaler=0.01, defect_scaler=0.01, lower=0.0)
 
-    phase.add_control('v%d' % i, units='m/s', opt=False, upper=10, lower=0.0)
-    phase.add_control('chi%d' % i, units='deg', opt=True, upper=180, lower=-180)
-
+    phase.add_control('vx%d' % i, rate_continuity=False, units='m/s', opt=True, upper=15, lower=-15.0)
+    phase.add_control('vy%d' % i, rate_continuity=False, units='m/s', opt=True, upper=15, lower=-15.0)
+    #phase.add_control('chi%d' % i, units='deg', opt=True, upper=180, lower=-180)
+    phase.add_path_constraint(name = 'keepout%d.dist' % i,
+                              constraint_name = 'keepout%d' % i,
+                              scaler=0.1,
+                              lower=keepout_radius,
+                              units='m')
 for i, j in combinations([i for i in range(n_traj)], 2):
     phase.add_path_constraint(name='distance_%d_%d.dist' % (i, j), 
                               constraint_name='distance_%d_%d' % (i, j), 
-                              lower=6000.0, 
-                              scaler=0.01,
+                              scaler=0.1,
+                              lower=personal_zone, 
                               units='m')
 
 # Minimize time to target
-phase.add_objective('time', loc='final', scaler=1.0)
+phase.add_objective('vtotals.vtotal', scaler=10.0)
 
 
 p.setup()
@@ -91,7 +111,7 @@ phase = p.model.phase0
 
 
 p['phase0.t_initial'] = 0.0
-p['phase0.t_duration'] = 500.0
+p['phase0.t_duration'] = 5500.0
 
 for i in range(n_traj):
 
@@ -121,14 +141,16 @@ for i in range(n_traj):
     data[i]['y_imp'] = phase.get_values('y%d' % i, units='m', nodes='all').flatten()
 
     #data[i]['T'] = exp_out.get_values('T%d' % i, units='N').flatten()
-    data[i]['chi'] = exp_out.get_values('chi%d' % i, units='deg').flatten()
-    data[i]['v'] = exp_out.get_values('v%d' % i, units='m/s').flatten()
+    #data[i]['chi'] = exp_out.get_values('chi%d' % i, units='deg').flatten()
+    data[i]['vx'] = exp_out.get_values('vx%d' % i, units='m/s').flatten()
+    data[i]['keepout'] = exp_out.get_values('keepout%d.dist' % i, units='m').flatten()
 
     #data[i]['T_imp'] = phase.get_values('T%d' % i, units='N', nodes='all').flatten()
-    data[i]['chi_imp'] = phase.get_values('chi%d' % i, units='deg', nodes='all').flatten()
-    data[i]['v_imp'] = phase.get_values('v%d' % i, units='m/s', nodes='all').flatten()
-    print("v%d" % i, min(data[i]['v']), max(data[i]['v']))
-    print("chi%d" % i, min(data[i]['chi']), max(data[i]['chi']))
+    #data[i]['chi_imp'] = phase.get_values('chi%d' % i, units='deg', nodes='all').flatten()
+    #data[i]['v_imp'] = phase.get_values('v%d' % i, units='m/s', nodes='all').flatten()
+    #print("vx%d" % i, min(data[i]['vx']), max(data[i]['vx']))
+    print("keepout%d" % i, min(data[i]['keepout']))
+    #print("chi%d" % i, min(data[i]['chi']), max(data[i]['chi']))
 
 
 data['t'] = exp_out.get_values('time', units='s').flatten()
@@ -138,12 +160,33 @@ for i, j in combinations([i for i in range(n_traj)], 2):
     dist = exp_out.get_values('distance_%d_%d.dist' % (i, j), units='m').flatten()
     print(i, j, min(dist))
 
+circle_x = []
+circle_y = []
+r = 4000.
+for i in np.linspace(0, 2*np.pi, 1000):
+    circle_x.append(r*np.cos(i))
+    circle_y.append(r*np.sin(i))
+
+
+kcircle_x = []
+kcircle_y = []
+r = keepout_radius
+for i in np.linspace(0, 2*np.pi, 1000):
+    kcircle_x.append(x_loc + r*np.cos(i))
+    kcircle_y.append(y_loc + r*np.sin(i))
+
+
 fig = plt.figure()
 
+plt.plot(kcircle_x, kcircle_y, 'k--', linewidth=0.5)
+plt.plot(circle_x, circle_y, 'k-.', linewidth=0.5)
 
+
+for sx, ex, sy, ey in locations:
+    plt.plot([sx, ex], [sy, ey], 'kx', markersize=10)
 for i in range(n_traj):
-    plt.plot(data[i]['x_imp'], data[i]['y_imp'], 'gray')
-    plt.scatter(data[i]['x_imp'], data[i]['y_imp'], cmap='Greens', c=data['t_imp'])
+    plt.plot(data[i]['x'], data[i]['y'], 'gray')
+    plt.scatter(data[i]['x'], data[i]['y'], cmap='Greens', c=data['t_imp'])
 
 plt.xlabel('x')
 plt.ylabel('y')
