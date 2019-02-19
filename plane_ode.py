@@ -7,11 +7,11 @@ from distance import Distance, VSum, KeepOut
 from dymos import declare_time, declare_state, declare_parameter
 from itertools import combinations
 
-n_traj = 6
+n_traj = 8
 x_loc = 0.0
 y_loc = 0.0
 keepout_radius = 2000.0
-ks_start = 3000.0
+ks_start = 30000.0
 personal_zone = 1000.0
 
 class PlaneODE2D(Group):

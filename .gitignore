@@ -1,0 +1,7 @@
+*.png
+__pycache__
+*.db
+*.mp4
+SNOPT*
+*.DS_Store
+*.json

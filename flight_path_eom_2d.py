@@ -50,6 +50,11 @@ class FlightPathEOM2D(ExplicitComponent):
                         desc='crossrange (latitude) velocity',
                         units='m/s')
 
+        self.add_output(name='distance',
+                        val=0.0,
+                        desc='total distance travelled',
+                        units='m')
+
         # self.add_output(name='v_dot',
         #                 val=np.zeros(nn),
         #                 desc='rate of change of velocity magnitude',
@@ -62,6 +67,8 @@ class FlightPathEOM2D(ExplicitComponent):
 
         self.declare_partials('x_dot', 'vx', rows=ar, cols=ar)
         self.declare_partials('y_dot', 'vy', rows=ar, cols=ar)
+
+        self.declare_partials('distance', ['vx', 'vy'])
 
         self.declare_partials('vt', 'vx')
         self.declare_partials('vt', 'vy')

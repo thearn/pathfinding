@@ -21,9 +21,9 @@ p.driver.opt_settings['Major iterations limit'] = 10000
 p.driver.opt_settings['Minor iterations limit'] = 10000
 p.driver.opt_settings['Iterations limit'] = 100000
 p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-3
-p.driver.opt_settings['Major optimality tolerance'] = 1.0E-3
+p.driver.opt_settings['Major optimality tolerance'] = 1.0E-16
 #p.driver.opt_settings["Linesearch tolerance"] = 0.01
-p.driver.opt_settings["Major step limit"] = 1.1
+p.driver.opt_settings["Major step limit"] = 0.1
 p.driver.opt_settings['iSumm'] = 6
 
 
@@ -36,8 +36,8 @@ phase = Phase(transcription='gauss-lobatto',
               compressed=True)
 
 p.model.add_subsystem('phase0', phase)
-p.model.options['assembled_jac_type'] = 'csc'
-p.model.linear_solver = DirectSolver(assemble_jac=True)
+#p.model.options['assembled_jac_type'] = 'csc'
+#p.model.linear_solver = DirectSolver(assemble_jac=True)
 
 phase.set_time_options(initial_bounds=(0, 0), duration_bounds=(5500, 5500))
 
@@ -81,8 +81,8 @@ for i in range(n_traj):
     # phase.set_state_options('v%d' % i, fix_initial=False, fix_final=False,
     #                     scaler=0.01, defect_scaler=0.01, lower=0.0)
 
-    phase.add_control('vx%d' % i, rate_continuity=False, units='m/s', opt=True, upper=15, lower=-15.0)
-    phase.add_control('vy%d' % i, rate_continuity=False, units='m/s', opt=True, upper=15, lower=-15.0)
+    phase.add_control('vx%d' % i, rate_continuity=False, units='m/s', opt=True, upper=10, lower=-10.0)
+    phase.add_control('vy%d' % i, rate_continuity=False, units='m/s', opt=True, upper=10, lower=-10.0)
     #phase.add_control('chi%d' % i, units='deg', opt=True, upper=180, lower=-180)
     phase.add_path_constraint(name = 'keepout%d.dist' % i,
                               constraint_name = 'keepout%d' % i,
