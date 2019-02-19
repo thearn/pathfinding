@@ -17,14 +17,14 @@ for i in range(n_traj):
     data[i]['loc'] = [data[i]['x'][0], data[i]['x'][-1], data[i]['y'][0], data[i]['y'][-1]]
 
 
-    data[i]['vx'] = exp_out.get_values('vx%d' % i, units='m/s').flatten()
-    print("vx%d" % i, min(data[i]['vx']), max(data[i]['vx']))
+    # data[i]['vx'] = exp_out.get_values('vx%d' % i, units='m/s').flatten()
+    # print("vx%d" % i, min(data[i]['vx']), max(data[i]['vx']))
 
 
 data['t'] = exp_out.get_values('time', units='s').flatten()
 print("time", data['t'][-1])
 for i, j in combinations([i for i in range(n_traj)], 2):
-    dist = exp_out.get_values('distance_%d_%d.dist' % (i, j), units='m').flatten()
+    dist = exp_out.get_values('distance_%d_%d.dist' % (i, j)).flatten()
     print(i, j, min(dist))
 
 circle_x = []

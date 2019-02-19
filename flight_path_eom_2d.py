@@ -16,12 +16,12 @@ class FlightPathEOM2D(ExplicitComponent):
         nn = self.options['num_nodes']
 
         self.add_input(name='vx',
-                       val=np.ones(nn),
+                       val=np.zeros(nn),
                        desc='aircraft velocity magnitude x',
                        units='m/s')
 
         self.add_input(name='vy',
-                       val=np.ones(nn),
+                       val=np.zeros(nn),
                        desc='aircraft velocity magnitude y',
                        units='m/s')
 

@@ -3,6 +3,7 @@ import numpy as np
 from openmdao.api import ExplicitComponent
 from numpy import tan
 
+mn = 0.1
 
 class VSum(ExplicitComponent):
 
@@ -77,10 +78,13 @@ class Distance(ExplicitComponent):
         y1 = inputs['y1']
         y2 = inputs['y2']
 
-        partials['dist', 'x1'] = (x1 - x2)/np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
-        partials['dist', 'x2'] = (-x1 + x2)/np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
-        partials['dist', 'y1'] = (y1 - y2)/np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
-        partials['dist', 'y2'] = (-y1 + y2)/np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+        dist = np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+        dist[np.where(dist < mn)] = mn
+
+        partials['dist', 'x1'] = (x1 - x2)/dist
+        partials['dist', 'x2'] = (-x1 + x2)/dist
+        partials['dist', 'y1'] = (y1 - y2)/dist
+        partials['dist', 'y2'] = (-y1 + y2)/dist
 
 
 
@@ -135,8 +139,11 @@ class KeepOut(ExplicitComponent):
         xl = self.options['x_loc']
         yl = self.options['y_loc']
 
-        partials['dist', 'x'] = (x - xl)/np.sqrt((x - xl)**2 + (y - yl)**2)
-        partials['dist', 'y'] = (y - yl)/np.sqrt((x - xl)**2 + (y - yl)**2)
+        dist = np.sqrt((x - xl)**2 + (y - yl)**2)
+        dist[np.where(dist < mn)] = mn
+
+        partials['dist', 'x'] = (x - xl)/dist
+        partials['dist', 'y'] = (y - yl)/dist
 
 
 
