@@ -50,10 +50,10 @@ class FlightPathEOM2D(ExplicitComponent):
                         desc='crossrange (latitude) velocity',
                         units='m/s')
 
-        self.add_output(name='distance',
-                        val=0.0,
-                        desc='total distance travelled',
-                        units='m')
+        self.add_output(name='L_dot',
+                        val=np.zeros(nn),
+                        desc='roc of total distance travelled',
+                        units='m/s')
 
         # self.add_output(name='v_dot',
         #                 val=np.zeros(nn),
@@ -68,7 +68,7 @@ class FlightPathEOM2D(ExplicitComponent):
         self.declare_partials('x_dot', 'vx', rows=ar, cols=ar)
         self.declare_partials('y_dot', 'vy', rows=ar, cols=ar)
 
-        self.declare_partials('distance', ['vx', 'vy'])
+        self.declare_partials('L_dot', ['vx', 'vy'])
 
         self.declare_partials('vt', 'vx')
         self.declare_partials('vt', 'vy')
@@ -88,6 +88,8 @@ class FlightPathEOM2D(ExplicitComponent):
         outputs['y_dot'] = vy
         outputs['vt'] = np.sum(vx**2 + vy**2)
 
+        outputs['L_dot'] = np.sqrt(vx**2 + vy**2)
+
 
     def compute_partials(self, inputs, partials):
         m = 5.0
@@ -105,7 +107,11 @@ class FlightPathEOM2D(ExplicitComponent):
         partials['vt', 'vx'] = 2*vx
         partials['vt', 'vy'] = 2*vy
 
-
+        v = np.sqrt(vx**2 + vy**2)
+        mn = 1e-9
+        v[np.where(v < mn)] = mn
+        partials['L_dot', 'vx'] = vx/v
+        partials['L_dot', 'vy'] = vy/v
 
 
 

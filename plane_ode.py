@@ -7,7 +7,7 @@ from distance import Distance, VSum, KeepOut
 from dymos import declare_time, declare_state, declare_parameter
 from itertools import combinations
 
-n_traj = 8
+n_traj = 2
 x_loc = 0.0
 y_loc = 0.0
 keepout_radius = 2000.0

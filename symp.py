@@ -1,16 +1,23 @@
 from sympy import *
 
-x1,x2,y1,y2 = symbols('x1 x2 y1 y2')
 
-x,y,chi,v = symbols('x y chi v')
+inputs = 'm v T D chi vx vy'
 
-dist = sqrt((x1 - x2)**2 + (y1 - y2)**2)
+# ----------------
+outputs = {}
+inputs_unpacked = ','.join(inputs.split())
+exec('%s = symbols("%s")' % (inputs_unpacked, inputs))
+exec('input_symbs = [%s]' % inputs_unpacked)
+# -----------------
+
+outputs['L_dot'] = sqrt(vx**2 + vy**2)
 
 
-x_dot = v  * cos(chi)
-y_dot = v  * sin(chi)
-
-print(diff(x_dot, v))
-print(diff(x_dot, chi))
-print(diff(y_dot, v))
-print(diff(y_dot, chi))
+# ------------------
+for oname in outputs:
+    print()
+    for iname in input_symbs:
+        deriv = diff(outputs[oname], iname)
+        if deriv != 0:
+            st = "\t\tpartials['%s', '%s'] = %s" % (oname, iname, deriv)
+            print(st)
