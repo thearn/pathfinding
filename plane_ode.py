@@ -34,6 +34,7 @@ class PlaneODE2D(Group):
     for i in range(n_traj):
         ode_options.declare_state(name='x%d' % i, rate_source='flight_path%d.x_dot' % i, targets=targets[i]['x'], units='m')
         ode_options.declare_state(name='y%d' % i, rate_source='flight_path%d.y_dot' % i, targets=targets[i]['y'], units='m')
+        #ode_options.declare_state(name='L%d' % i, rate_source='flight_path%d.L_dot' % i, units='m')
         ode_options.declare_parameter(name='vx%d' % i, targets = 'flight_path%d.vx' % i, units='m/s')
         ode_options.declare_parameter(name='vy%d' % i, targets = 'flight_path%d.vy' % i, units='m/s')
 

@@ -68,7 +68,7 @@ class FlightPathEOM2D(ExplicitComponent):
         self.declare_partials('x_dot', 'vx', rows=ar, cols=ar)
         self.declare_partials('y_dot', 'vy', rows=ar, cols=ar)
 
-        self.declare_partials('L_dot', ['vx', 'vy'])
+        self.declare_partials('L_dot', ['vx', 'vy'], rows=ar, cols=ar)
 
         self.declare_partials('vt', 'vx')
         self.declare_partials('vt', 'vy')
@@ -113,5 +113,19 @@ class FlightPathEOM2D(ExplicitComponent):
         partials['L_dot', 'vx'] = vx/v
         partials['L_dot', 'vy'] = vy/v
 
+if __name__ == '__main__':
+    from openmdao.api import Problem, Group
 
+    n = 20
+
+    p = Problem()
+    p.model = Group()
+    p.model.add_subsystem('test', FlightPathEOM2D(num_nodes = n), promotes=['*'])
+    p.setup()
+
+    p['vx'] = np.random.uniform(0.01, 20, size=n)
+    p['vy'] = np.random.uniform(0.01, 20, size=n)
+
+    p.run_model()
+    p.check_partials(compact_print=True)
 
