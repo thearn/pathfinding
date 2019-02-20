@@ -1,31 +1,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from dymos import load_simulation_results
 from plane_ode import n_traj, keepout_radius, x_loc, y_loc, ks_start, n_traj, personal_zone
 from itertools import combinations
+import os, shutil
+import pickle
+
+shutil.rmtree('frames')
+os.makedirs('frames')
 
 
-exp_out = load_simulation_results('sim.db')
 
 
-data = {}
-for i in range(n_traj):
-    data[i] = {}
-    data[i]['x'] = exp_out.get_values('x%d' % i, units='m').flatten()
-    data[i]['y'] = exp_out.get_values('y%d' % i, units='m').flatten()
-    data[i]['loc'] = [data[i]['x'][0], data[i]['x'][-1], data[i]['y'][0], data[i]['y'][-1]]
-
-
-    # data[i]['vx'] = exp_out.get_values('vx%d' % i, units='m/s').flatten()
-    # print("vx%d" % i, min(data[i]['vx']), max(data[i]['vx']))
-
-
-data['t'] = exp_out.get_values('time', units='s').flatten()
-print("time", data['t'][-1])
-for i, j in combinations([i for i in range(n_traj)], 2):
-    dist = exp_out.get_values('distance_%d_%d.dist' % (i, j)).flatten()
-    print(i, j, min(dist))
+with open('sim.pkl', 'rb') as f:
+    data = pickle.load(f)
 
 circle_x = []
 circle_y = []
@@ -76,6 +64,7 @@ for t in range(len(data['t']))[::-1]:
     plt.axis('equal')
     fig.savefig('frames/%03d.png' % t, dpi=fig.dpi)
 
+cmd = "ffmpeg -y -r 10 -i frames/%03d.png -c:v libx264 -vf fps=25 -pix_fmt yuv420p out.mp4; open out.mp4"
+os.system(cmd)
 
-
-plt.show()
+#plt.show()

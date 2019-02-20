@@ -8,7 +8,7 @@ from schedule import Schedule
 from dymos import declare_time, declare_state, declare_parameter
 from itertools import combinations
 
-n_traj = 8
+n_traj = 5
 x_loc = 0.0
 y_loc = 0.0
 keepout_radius = 1500.0
@@ -52,9 +52,7 @@ class PlaneODE2D(Group):
 
     def setup(self):
         nn = self.options['num_nodes']
-
         self.add_subsystem('vtotals', subsys=VSum(n_traj=n_traj))
-
         for i in range(n_traj):
             self.add_subsystem(name='flight_path%d' % i,
                            subsys=FlightPathEOM2D(num_nodes=nn))

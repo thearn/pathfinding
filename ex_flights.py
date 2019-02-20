@@ -10,6 +10,8 @@ from matplotlib import cm
 from dymos import Phase
 from itertools import combinations
 
+import pickle
+
 np.random.seed(4312)
 
 p = Problem(model=Group())
@@ -83,7 +85,7 @@ for i in range(n_traj):
     end_y = center_y + r*np.sin(theta + theta2)
 
     locations.append([start_x, end_x, start_y, end_y])
-
+    #print("location", i, locations[-1])
     phase.add_input_parameter('sx%d'%i, val=start_x, units='m')
     phase.add_input_parameter('sy%d'%i, val=start_y, units='m')
     phase.add_input_parameter('ex%d'%i, val=end_x, units='m')
@@ -132,7 +134,6 @@ phase.add_objective('time', loc='final', scaler=0.1)
 #phase.add_objective('vtotals.vtotal', loc='final', scaler=1.0) #71000
 #phase.add_objective('schedule0.err_d', loc='final', scaler=10.0)
 
-
 p.setup()
 
 phase = p.model.phase0
@@ -162,39 +163,23 @@ len_y = (p['phase0.states:y%d' % i][-1] - p['phase0.states:y%d' % i][0])[0]
 p.run_driver()
 
 # ‘vode’, ‘lsoda’, ‘dopri5’
-exp_out = phase.simulate(times='all', integrator='vode', record_file='sim.db')
+exp_out = phase.simulate(times='all', record=False)
 
 data = {}
+data['t'] = exp_out.get_val('phase0.timeseries.time', units='s').flatten()
 for i in range(n_traj):
     data[i] = {}
-    data[i]['x'] = exp_out.get_values('x%d' % i, units='m').flatten()
-    data[i]['y'] = exp_out.get_values('y%d' % i, units='m').flatten()
-    data[i]['err_d'] = exp_out.get_values('schedule%d.err_d' % i, units='m').flatten()
+    data[i]['x'] = exp_out.get_val('phase0.timeseries.states:x%d' % i, units='m').flatten()
+    data[i]['y'] = exp_out.get_val('phase0.timeseries.states:y%d' % i, units='m').flatten()
+    data[i]['loc'] = locations[i]
 
-    data[i]['x_imp'] = phase.get_values('x%d' % i, units='m', nodes='all').flatten()
-    data[i]['y_imp'] = phase.get_values('y%d' % i, units='m', nodes='all').flatten()
+with open('sim.pkl', 'wb') as f:
+    pickle.dump(data, f)
 
-    #data[i]['T'] = exp_out.get_values('T%d' % i, units='N').flatten()
-    #data[i]['chi'] = exp_out.get_values('chi%d' % i, units='deg').flatten()
-    data[i]['vx'] = exp_out.get_values('vx%d' % i, units='m/s').flatten()
-    data[i]['keepout'] = exp_out.get_values('keepout%d.dist' % i, units='m').flatten()
-
-    #data[i]['T_imp'] = phase.get_values('T%d' % i, units='N', nodes='all').flatten()
-    #data[i]['chi_imp'] = phase.get_values('chi%d' % i, units='deg', nodes='all').flatten()
-    #data[i]['v_imp'] = phase.get_values('v%d' % i, units='m/s', nodes='all').flatten()
-    #print("vx%d" % i, min(data[i]['vx']), max(data[i]['vx']))
-    print("keepout%d" % i, min(data[i]['keepout']))
-    print("schedule%d" % i, max(data[i]['err_d']))
-    #print("chi%d" % i, min(data[i]['chi']), max(data[i]['chi']))
-
-
-data['t'] = exp_out.get_values('time', units='s').flatten()
-data['t_imp'] = phase.get_values('time', units='s').flatten()
-#print("v:", exp_out.get_values('vtotals.vtotal'))
-print("time", data['t'][-1])
-for i, j in combinations([i for i in range(n_traj)], 2):
-    dist = exp_out.get_values('distance_%d_%d.dist' % (i, j), units='m').flatten()
-    print(i, j, min(dist))
+# print("time", data['t'][-1])
+# for i, j in combinations([i for i in range(n_traj)], 2):
+#     dist = exp_out.get_val('phase0.timeseries.distance_%d_%d.dist' % (i, j), units='m').flatten()
+#     print(i, j, min(dist))
 
 circle_x = []
 circle_y = []
@@ -222,7 +207,7 @@ for sx, ex, sy, ey in locations:
     plt.plot([sx, ex], [sy, ey], 'kx', markersize=10)
 for i in range(n_traj):
     plt.plot(data[i]['x'], data[i]['y'], 'gray')
-    plt.scatter(data[i]['x'], data[i]['y'], cmap='Greens', c=data['t_imp'])
+    plt.scatter(data[i]['x'], data[i]['y'], cmap='Greens', c=data['t'])
 
 plt.xlabel('x')
 plt.ylabel('y')
