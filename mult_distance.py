@@ -8,12 +8,12 @@ from numpy import tan
 mn = 1.0
 min_distance = 500.0
 
-
 def loss(x, m=500):
     fx = (np.tanh(x - m) - 1) * np.log(x / m)
     df = (-np.tanh(-m + x)**2 + 1)*np.log(x/m) + (np.tanh(-m + x) - 1)/x
 
     return fx, df
+
 
 class MDist(ExplicitComponent):
 
@@ -26,8 +26,8 @@ class MDist(ExplicitComponent):
         nn = self.options['num_nodes']
         self.vnames = []
         for i in range(n_traj):
-            self.add_input(name='x%d' % i, val=np.zeros(nn))
-            self.add_input(name='y%d' % i, val=np.zeros(nn))
+            self.add_input(name='x%d' % i, val=np.zeros(nn), units='m')
+            self.add_input(name='y%d' % i, val=np.zeros(nn), units='m')
             self.vnames.extend(['x%d' % i, 'y%d' % i])
 
         self.add_output(name='err_dist', val=np.zeros(nn))

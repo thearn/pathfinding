@@ -25,7 +25,7 @@ p.driver.opt_settings['Iterations limit'] = 100000
 p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-8
 p.driver.opt_settings['Major optimality tolerance'] = 1.0E-10
 #p.driver.opt_settings["Linesearch tolerance"] = 0.01
-p.driver.opt_settings["Major step limit"] = 0.1
+p.driver.opt_settings["Major step limit"] = 0.5
 p.driver.opt_settings['iSumm'] = 6
 
 
@@ -33,7 +33,7 @@ p.driver.opt_settings['iSumm'] = 6
 
 phase = Phase(transcription='gauss-lobatto',
               ode_class=PlaneODE2D,
-              num_segments=35,
+              num_segments=20,
               transcription_order=3,
               compressed=True)
 
@@ -122,12 +122,11 @@ for i in range(n_traj):
                               scaler=0.1,
                               lower=keepout_radius,
                               units='m')
-for i, j in combinations([i for i in range(n_traj)], 2):
-    phase.add_path_constraint(name='distance_%d_%d.dist' % (i, j), 
-                              constraint_name='distance_%d_%d' % (i, j), 
-                              scaler=0.1,
-                              lower=personal_zone, 
-                              units='m')
+
+# phase.add_path_constraint(name='mdist.err_dist', 
+#                           constraint_name='mdist_err_dist', 
+#                           scaler=1.0,
+#                           upper=0.0)
 
 # Minimize time to target
 phase.add_objective('time', loc='final', scaler=0.1)
