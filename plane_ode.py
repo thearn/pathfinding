@@ -19,13 +19,13 @@ personal_zone = 500.0
 class PlaneODE2D(Group):
     ode_options = ODEOptions()
 
-    ode_options.declare_time(units='s', targets = ['keepout%d.time' % i for i in range(n_traj)] + ['schedule%d.time' % i for i in range(n_traj)])
+    ode_options.declare_time(units='s', targets = ['keepout.time'] + ['schedule%d.time' % i for i in range(n_traj)])
 
     targets = {}
     for i in range(n_traj):
-        targets[i] = {'x': ['keepout%d.x' % i, 
+        targets[i] = {'x': ['keepout.x%d' % i, 
                             'schedule%d.x' % i], 
-                      'y' : ['keepout%d.y' % i, 
+                      'y' : ['keepout.y%d' % i, 
                              'schedule%d.y' % i]}
 
     # dynamic trajectories
@@ -57,7 +57,12 @@ class PlaneODE2D(Group):
             self.add_subsystem(name='schedule%d' % i,
                            subsys=Schedule(num_nodes=nn))
 
-            self.add_subsystem('keepout%d' % i, subsys=KeepOut(num_nodes=nn, x_loc=x_loc, y_loc=y_loc, ts = ks_start))
+        self.add_subsystem('keepout', subsys=KeepOut(num_nodes=nn, 
+                                                     n_traj=n_traj, 
+                                                     x_loc=x_loc, 
+                                                     y_loc=y_loc,
+                                                     keepout_radius=keepout_radius,
+                                                     ts = ks_start))
         
         self.add_subsystem('mdist', subsys=MDist(n_traj=n_traj, num_nodes=nn))
 

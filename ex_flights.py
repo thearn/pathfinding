@@ -117,11 +117,10 @@ for i in range(n_traj):
                               scaler=100.0,
                               upper=10.0,
                               units='m')
-    phase.add_path_constraint(name = 'keepout%d.dist' % i,
-                              constraint_name = 'keepout%d' % i,
-                              scaler=0.1,
-                              lower=keepout_radius,
-                              units='m')
+phase.add_path_constraint(name = 'keepout.err_keepoutdist',
+                          constraint_name = 'keepoutdist',
+                          scaler=1.0,
+                          upper=0.0)
 
 phase.add_path_constraint(name='mdist.err_dist', 
                           constraint_name='mdist_err_dist', 
