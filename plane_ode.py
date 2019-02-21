@@ -3,17 +3,17 @@ import numpy as np
 from openmdao.api import ExplicitComponent, Group
 from flight_path_eom_2d import FlightPathEOM2D
 from dymos import Phase, ODEOptions
-from distance import Distance, VSum, KeepOut
+from distance import KeepOut
 from mult_distance import MDist
 from schedule import Schedule
 from dymos import declare_time, declare_state, declare_parameter
 from itertools import combinations
 
-n_traj = 10
+n_traj = 7
 x_loc = 0.0
 y_loc = 0.0
 keepout_radius = 1500.0
-ks_start = 600.0
+ks_start = 0.0
 personal_zone = 500.0
 
 class PlaneODE2D(Group):
@@ -53,13 +53,11 @@ class PlaneODE2D(Group):
         for i in range(n_traj):
             self.add_subsystem(name='flight_path%d' % i,
                            subsys=FlightPathEOM2D(num_nodes=nn))
-            #self.connect('flight_path%d.vt' % i, 'vtotals.v%d' % i)
             
             self.add_subsystem(name='schedule%d' % i,
                            subsys=Schedule(num_nodes=nn))
 
             self.add_subsystem('keepout%d' % i, subsys=KeepOut(num_nodes=nn, x_loc=x_loc, y_loc=y_loc, ts = ks_start))
         
-        #self.add_subsystem('vtotals', subsys=VSum(n_traj=n_traj))
-        #self.add_subsystem('mdist', subsys=MDist(n_traj=n_traj, num_nodes=nn))
+        self.add_subsystem('mdist', subsys=MDist(n_traj=n_traj, num_nodes=nn))
 

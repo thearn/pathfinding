@@ -37,9 +37,9 @@ for t in range(len(data['t']))[::-1]:
         ts = 0
         if ts < 0:
             ts = 0
-        if data['t'][t] > ks_start:
+        if data['t'][t] >= ks_start:
             #plt.plot(kcircle_x, kcircle_y, 'k--', linewidth=0.5)   
-            circle = plt.Circle((x_loc, y_loc), keepout_radius - personal_zone/2, fill=False)
+            circle = plt.Circle((x_loc, y_loc), keepout_radius - personal_zone/2, fill=False, hatch='x')
             ax.add_artist(circle) 
         circle = plt.Circle((0, 0), 4000, fill=False)
         ax.add_artist(circle) 
@@ -55,13 +55,13 @@ for t in range(len(data['t']))[::-1]:
         plt.scatter(data[i]['x'][ts:t+1], data[i]['y'][ts:t+1], marker='o', c=c, s=s, cmap='Greys', alpha=0.5)
         plt.scatter(data[i]['x'][t], data[i]['y'][t], marker='^', cmap='Greens')
         sx, ex, sy, ey = data[i]['loc']
-        plt.plot([sx, ex], [sy, ey], 's', markersize=10)
+        plt.plot([sx, ex], [sy, ey], 's', markersize=6)
         #plt.xlabel('x')
         #plt.ylabel('y')
-    plt.xlim(-5000,5000)
-    plt.ylim(-5000,5000)
     plt.tight_layout(pad=1)
     plt.axis('equal')
+    plt.xlim(-4100,4100)
+    plt.ylim(-4100,4100)
     fig.savefig('frames/%03d.png' % t, dpi=fig.dpi)
 
 cmd = "ffmpeg -y -r 10 -i frames/%03d.png -c:v libx264 -vf fps=25 -pix_fmt yuv420p out.mp4; open out.mp4"

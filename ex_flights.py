@@ -25,7 +25,7 @@ p.driver.opt_settings['Iterations limit'] = 100000
 p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-8
 p.driver.opt_settings['Major optimality tolerance'] = 1.0E-10
 #p.driver.opt_settings["Linesearch tolerance"] = 0.01
-p.driver.opt_settings["Major step limit"] = 0.5
+p.driver.opt_settings["Major step limit"] = 0.1
 p.driver.opt_settings['iSumm'] = 6
 
 
@@ -123,10 +123,10 @@ for i in range(n_traj):
                               lower=keepout_radius,
                               units='m')
 
-# phase.add_path_constraint(name='mdist.err_dist', 
-#                           constraint_name='mdist_err_dist', 
-#                           scaler=1.0,
-#                           upper=0.0)
+phase.add_path_constraint(name='mdist.err_dist', 
+                          constraint_name='mdist_err_dist', 
+                          scaler=1.0,
+                          upper=0.0)
 
 # Minimize time to target
 phase.add_objective('time', loc='final', scaler=0.1)
