@@ -57,9 +57,15 @@ class Schedule(ExplicitComponent):
                        desc='schedule defect',
                        units='m')
 
+        self.add_output(name='destination_dist',
+                       val=0.0,
+                       desc='schedule dist',
+                       units='m')
+
         ar = np.arange(nn)
 
         self.declare_partials('err_d', ['x', 'y'], rows=ar, cols=ar)
+        self.declare_partials('destination_dist', ['x', 'y'])
 
     def compute(self, inputs, outputs):
         nn = self.options['num_nodes']
@@ -72,6 +78,9 @@ class Schedule(ExplicitComponent):
         y = inputs['y']
 
         pre_flight = np.where(t < td[0])
+
+        post_start = np.where(t >= td[0])
+
         post_flight = np.where(t > ta[0])
 
         start_distance = np.sqrt((xs - x)**2 + (ys - y)**2)
@@ -81,6 +90,8 @@ class Schedule(ExplicitComponent):
         outputs['err_d'][pre_flight] = start_distance[pre_flight]
         outputs['err_d'][post_flight] = end_distance[post_flight]
 
+        #end_distance = end_distance * t
+        outputs['destination_dist'] = end_distance[post_start].sum()
 
 
     def compute_partials(self, inputs, partials):
@@ -94,6 +105,7 @@ class Schedule(ExplicitComponent):
         y = inputs['y']
 
         pre_flight = np.where(t < td[0])
+        post_start = np.where(t >= td[0])
         post_flight = np.where(t > ta[0])
 
         diffx = np.zeros(nn)
@@ -112,6 +124,16 @@ class Schedule(ExplicitComponent):
 
         partials['err_d', 'x'] = diffx
         partials['err_d', 'y'] = diffy
+
+        diffx = np.zeros(nn)
+        diffy = np.zeros(nn)
+        diffx[post_start] = ((x - xe)/end_distance)[post_start]# * t[post_start]
+        diffy[post_start] = ((y - ye)/end_distance)[post_start]# * t[post_start]
+
+        partials['destination_dist', 'x'] = diffx
+        partials['destination_dist', 'y'] = diffy
+        #end_distance[pre_flight] = 0.0
+        #partials['destination_dist', 'time'] = end_distance
 
 if __name__ == '__main__':
     from openmdao.api import Problem, Group

@@ -12,21 +12,41 @@ from itertools import combinations
 
 import pickle
 
-np.random.seed(4312)
+np.random.seed(432)
 
 p = Problem(model=Group())
 
 p.driver = pyOptSparseDriver()
 p.driver.options['optimizer'] = 'SNOPT'
 p.driver.options['dynamic_simul_derivs'] = True
-p.driver.opt_settings['Major iterations limit'] = 10000
-p.driver.opt_settings['Minor iterations limit'] = 10000
-p.driver.opt_settings['Iterations limit'] = 100000
-p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-8
-p.driver.opt_settings['Major optimality tolerance'] = 1.0E-10
-#p.driver.opt_settings["Linesearch tolerance"] = 0.01
-p.driver.opt_settings["Major step limit"] = 0.1
+#p.driver.set_simul_deriv_color('coloring.json')
+#p.driver.opt_settings['Start'] = 'Cold'
 p.driver.opt_settings['iSumm'] = 6
+
+p.driver.opt_settings['Iterations limit'] = 100000
+p.driver.opt_settings["Major step limit"] = 0.5 #2.0
+p.driver.opt_settings['Major iterations limit'] = 10000
+p.driver.opt_settings['Major feasibility tolerance'] = 1.0E-4
+p.driver.opt_settings['Major optimality tolerance'] = 1.0E-4
+
+p.driver.opt_settings['Minor iterations limit'] = 10000
+p.driver.opt_settings['Minor feasibility tolerance'] = 1.0e-4
+
+p.driver.opt_settings['Scale option'] = 0 #0
+
+p.driver.opt_settings['QPSolver'] = 'QN' #Cholesky, QN, CG
+p.driver.opt_settings['Partial price'] = 10 # 1 to 10
+
+p.driver.opt_settings['Crash option'] = 3 # 3 1 2
+#p.driver.opt_settings["Linesearch tolerance"] = 0.1
+
+#p.driver.opt_settings['New superbasics limit'] = 99 # 99
+p.driver.opt_settings['Proximal point method'] = 1 # 1 2
+p.driver.opt_settings['Violation limit'] = 10.0 # 10.0
+
+# p.driver.opt_settings['']
+# p.driver.opt_settings['']
+# p.driver.opt_settings['']
 
 
 
@@ -42,16 +62,18 @@ p.model.add_subsystem('phase0', phase)
 #p.model.linear_solver = DirectSolver(assemble_jac=True)
 
 max_time = 6500.0
-phase.set_time_options(initial_bounds=(0, 0), duration_bounds=(1, max_time))
+phase.set_time_options(initial_bounds=(0, 0), duration_bounds=(max_time/4, max_time))
 
 
 locations = []
 thetas = []
 
-thetas = np.linspace(0, 2*np.pi, n_traj + 1)
+rand_st = np.random.uniform(0, 2*np.pi)
+thetas = np.linspace(rand_st, rand_st + 2*np.pi, 2*n_traj + 1)[:-1]
+np.random.shuffle(thetas)
 
 schedules = []
-
+r = 4000.0
 for i in range(n_traj):
     # trajectories random start/end locations in circle of radius 4000 around this point
     center_x = 0
@@ -70,19 +92,15 @@ for i in range(n_traj):
     schedules.append([t_start, t_end])
     print("schedule:", t_start, t_end)
 
-    theta = thetas[i]        
-    theta2 = np.random.uniform(np.pi-np.pi/6, np.pi + np.pi/6)
-    r = 4000.
-
-    if i%3 == 0: 
-        theta2 = theta - np.pi / 4
+    theta = thetas[2*i]
+    theta2 = thetas[2*i + 1]
 
 
     start_x = center_x + r*np.cos(theta)
     start_y = center_y + r*np.sin(theta)
 
-    end_x = center_x + r*np.cos(theta + theta2)
-    end_y = center_y + r*np.sin(theta + theta2)
+    end_x = center_x + r*np.cos(theta2)
+    end_y = center_y + r*np.sin(theta2)
 
     locations.append([start_x, end_x, start_y, end_y])
     #print("location", i, locations[-1])
@@ -119,18 +137,17 @@ for i in range(n_traj):
                               units='m')
 phase.add_path_constraint(name = 'keepout.err_keepoutdist',
                           constraint_name = 'keepoutdist',
-                          scaler=1.0,
-                          upper=0.0)
+                          scaler=10.0,
+                          upper=0.01)
 
 phase.add_path_constraint(name='mdist.err_dist', 
                           constraint_name='mdist_err_dist', 
-                          scaler=1.0,
-                          upper=0.0)
+                          scaler=10.0,
+                          upper=0.01)
 
 # Minimize time to target
-phase.add_objective('time', loc='final', scaler=0.1)
-#phase.add_objective('vtotals.vtotal', loc='final', scaler=1.0) #71000
-#phase.add_objective('schedule0.err_d', loc='final', scaler=10.0)
+#phase.add_objective('time', loc='final', scaler=0.1)
+phase.add_objective('summary.total_dist', loc='final', scaler=0.001) #71000
 
 p.setup()
 
@@ -165,6 +182,7 @@ exp_out = phase.simulate(times='all', record=False)
 
 data = {}
 data['t'] = exp_out.get_val('phase0.timeseries.time', units='s').flatten()
+print("time:", data['t'][-1])
 for i in range(n_traj):
     data[i] = {}
     data[i]['x'] = exp_out.get_val('phase0.timeseries.states:x%d' % i, units='m').flatten()
@@ -174,38 +192,26 @@ for i in range(n_traj):
 with open('sim.pkl', 'wb') as f:
     pickle.dump(data, f)
 
-# print("time", data['t'][-1])
-# for i, j in combinations([i for i in range(n_traj)], 2):
-#     dist = exp_out.get_val('phase0.timeseries.distance_%d_%d.dist' % (i, j), units='m').flatten()
-#     print(i, j, min(dist))
-
-circle_x = []
-circle_y = []
-r = 4000.
-for i in np.linspace(0, 2*np.pi, 1000):
-    circle_x.append(r*np.cos(i))
-    circle_y.append(r*np.sin(i))
-
-
-kcircle_x = []
-kcircle_y = []
-r = keepout_radius
-for i in np.linspace(0, 2*np.pi, 1000):
-    kcircle_x.append(x_loc + r*np.cos(i))
-    kcircle_y.append(y_loc + r*np.sin(i))
-
 
 fig = plt.figure()
+ax = plt.gca()
 
-plt.plot(kcircle_x, kcircle_y, 'k--', linewidth=0.5)
-plt.plot(circle_x, circle_y, 'k-.', linewidth=0.5)
+circle = plt.Circle((0, 0), 4000, fill=False)
+ax.add_artist(circle)
 
+circle = plt.Circle((x_loc, y_loc), keepout_radius, fill=False, hatch='xxx')
+ax.add_artist(circle)
 
 for sx, ex, sy, ey in locations:
     plt.plot([sx, ex], [sy, ey], 'kx', markersize=10)
 for i in range(n_traj):
     plt.plot(data[i]['x'], data[i]['y'], 'gray')
     plt.scatter(data[i]['x'], data[i]['y'], cmap='Greens', c=data['t'])
+
+plt.tight_layout(pad=1)
+plt.axis('equal')
+plt.xlim(-4100,4100)
+plt.ylim(-4100,4100)
 
 plt.xlabel('x')
 plt.ylabel('y')

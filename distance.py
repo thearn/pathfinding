@@ -5,7 +5,7 @@ from mult_distance import loss
 
 import matplotlib.pyplot as plt
 
-def activate(t, ts, a=20.0):
+def activate(t, ts, a=1.0):
     y = (np.tanh((t - ts)*a) + 1) / 2.0
     #a = a / 100
     dy = 0.5*a*(-np.tanh(a*(t - ts))**2 + 1)
@@ -69,17 +69,18 @@ class KeepOut(ExplicitComponent):
         self.de = {}
 
         self.de['err_keepoutdist', 'time'] = np.zeros(nn)
+        outputs['err_keepoutdist'] = np.zeros(nn)
 
         for i in range(n_traj):
             x = inputs['x%d' % i]
             y = inputs['y%d' % i]
             dist = np.sqrt((x - xl)**2 + (y - yl)**2)
-            dist[np.where(dist < 1.0)] = 1.0
+            dist[np.where(dist < 0.1)] = 0.1
 
             #dist[np.where(t <= ts)] = mn + 1.0
-
             f, df = loss(dist, mn)
             f = tt * f
+            df = tt * df
 
             outputs['err_keepoutdist'] += f
             self.de['err_keepoutdist', 'time'] += dt * f
@@ -105,8 +106,8 @@ class KeepOut(ExplicitComponent):
 
 if __name__ == '__main__':
     from openmdao.api import Problem, Group
-    nt = 10
-    n = 20
+    nt = 3
+    n = 30
 
     p = Problem()
     p.model = Group()
@@ -124,5 +125,5 @@ if __name__ == '__main__':
         p['y%d' % i] = np.random.uniform(0.01, 100, size=n)
 
     p.run_model()
-    #p.check_partials(compact_print=True)
+    p.check_partials(compact_print=True)
 
